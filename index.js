@@ -1,19 +1,28 @@
-const { Client, Events, GatewayIntentBits, Attachment, AttachmentBuilder, Collection } = require('discord.js');
+const { Client, Events, GatewayIntentBits, Attachment, AttachmentBuilder, Collection, Partials } = require('discord.js');
 const axios = require('axios');
 const schedule = require('node-schedule');
 const svgCaptcha = require('svg-captcha');
-const dotenv = require('dotenv')
-dotenv.config()
+const fetch = require('node-fetch');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const client = new Client({
+
+
     intents:
         [GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessageTyping,
         GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessageReactions,
         ]
-});
+},
+    {
+        partials: ['MESSAGE', 'CHANNEL', 'REACTION']
+    }
+
+);
 
 
 client.login(
@@ -29,6 +38,59 @@ const PREFIX = "!"
 client.once('ready', (message) => {
     console.log(`${client.user.tag} is online!`);
 })
+
+// Reaction Roles
+
+client.on('ready', async () => {
+    console.log(`${client.user.tag} is online!`);
+
+    const channel = await client.channels.fetch('1354625234304766042'); // Replace with your channel ID
+    const message = await channel.messages.fetch('1354625600412713022'); // Replace with your message ID
+
+    // Auto React
+
+    await message.react('❤️');
+    await message.react('💙');
+
+    // Reaction collector filter
+    const filter = (reaction, user) => !user.bot; // Ignore bot reactions
+
+    // Create a collector for reactions
+    const collector = message.createReactionCollector({ filter, dispose: true });
+
+    collector.on('collect', async (reaction, user) => {
+        console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
+        const member = await reaction.message.guild.members.fetch(user.id);
+
+        switch (reaction.emoji.name) {
+            case '❤️':
+                await member.roles.add('1354625276100874240'); // Replace with your role ID
+                console.log(`Assigned ❤️ role to ${user.tag}`);
+                break;
+            case '💙':
+                await member.roles.add('1354625373425631355'); // Replace with your role ID
+                console.log(`Assigned 💙 role to ${user.tag}`);
+                break;
+        }
+    });
+
+    collector.on('remove', async (reaction, user) => {
+        console.log(`Removed ${reaction.emoji.name} from ${user.tag}`);
+        const member = await reaction.message.guild.members.fetch(user.id);
+
+        switch (reaction.emoji.name) {
+            case '❤️':
+                await member.roles.remove('1354625276100874240');
+                console.log(`Removed ❤️ role from ${user.tag}`);
+                break;
+            case '💙':
+                await member.roles.remove('1354625373425631355');
+                console.log(`Removed 💙 role from ${user.tag}`);
+                break;
+        }
+    });
+});
+
 
 
 // client.on('messageCreate', async (message) => {
@@ -110,9 +172,10 @@ client.on('messageCreate', async (message) => {
             - **Dice** ~ Rolls a dice. \`!roll\`
             - **Dumb** ~ Tells you how much you are dumb in %. \`!dumb\`
             
-            *More commands to be added in the future*`;
+            *More commands to be added in the future*
+            `;
             
-            message.reply(commandInfo);
+            message.channel.send(`\`\`\`${commandInfo}\`\`\``);
         }
 
         if (CMD_NAME === 'kick') {
@@ -262,6 +325,27 @@ client.on('messageCreate', async (message) => {
 
                 }
         }
+
+        if(CMD_NAME === 'meme'){
+           
+                const response = await fetch('https://meme-api.com/gimme');
+                const data = await response.json();
+
+                if(!data){
+                    message.reply('Error! Couldn\'t fetch data from API!');
+                }
+
+                message.channel.send({
+                    embeds: [{
+                        title: data.title,
+                        image: {url: data.url},
+                        footer: {text: `👍 ${data.ups} upvotes`},
+                        color: 0x00FF00
+                    }]
+                })
+            
+        } 
+
     }
     if (message.content.startsWith("Create")) {
         message.reply({
@@ -271,6 +355,14 @@ client.on('messageCreate', async (message) => {
 
     }
 })
+
+
+
+
+
+
+
+
 
 client.on('interactionCreate', async (interaction) => {
 
