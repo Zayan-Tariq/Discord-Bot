@@ -16,6 +16,11 @@ const client = new Client({
         GatewayIntentBits.GuildMessageTyping,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.Guilds, // Essential for guild-related data (like channels)
+        GatewayIntentBits.GuildMessages, // For message-based interactions
+        GatewayIntentBits.GuildVoiceStates // For voice channel data
+       
+
         ]
 },
     {
@@ -344,7 +349,68 @@ client.on('messageCreate', async (message) => {
                     }]
                 })
             
-        } 
+        }
+
+        if(CMD_NAME === 'server'){
+
+            await message.guild.channels.fetch()
+
+            const name = message.guild.name
+            const date = message.guild.createdAt.toLocaleString()
+            const members = message.guild.memberCount.toLocaleString();
+            const botCount = message.guild.members.cache.filter(member => member.user.bot).size;
+            const boostLevel = message.guild.premiumTier.toLocaleString();
+            const channelCount = message.guild.channels.cache.filter(channel => channel.type === 0 || channel.type === 2).size;
+            const textChannelCount = message.guild.channels.cache.filter(c => c.type === 0).size; // Text channels
+            const voiceChannelCount = message.guild.channels.cache.filter(c => c.type === 2).size; // Voice channels
+            const categoryCount = message.guild.channels.cache.filter(c => c.type === 4).size; // Categories
+            
+            message.reply(`**Basic Information** \n 
+                    \nServer Name: ${name}
+                    \nServer Created at: ${date} 
+                    \nTotal Members: ${members} 
+                    \nBot Count: ${botCount} 
+                    \nCurrent Boost Level: ${boostLevel}
+                    \n**Channel Detail** \n
+                    \nNumber of channels: ${channelCount} 
+                    \nNumber of Text Channels: ${textChannelCount} 
+                    \nNumber of Voice Channels: ${voiceChannelCount}
+                    \nNumber of Categories: ${categoryCount}
+                    `);
+                    
+        }
+
+
+        if(CMD_NAME === 'weather'){
+            const args = message.content.split(' ');
+            const city = args.slice(1).join(' '); // grab everything after the command
+
+            if(!city) return message.channel.send('Please provide a city name!');
+
+            const url =  `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${process.env.WEATHER_API}&units=metric`;
+           
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                console.log(data);
+    
+                if(data.cod != 200) return message.reply(`Error! ${data.error}`);
+    
+                const weatherInfo = `🌍 **Weather in ${data.name}:**
+                                    🌡️ Temperature: ${data.main.temp}°C
+                                    🌤️ Weather: ${data.weather[0].main} - ${data.weather[0].description}
+                                    💨 Wind: ${data.wind.speed} m/s
+                                    💧 Humidity: ${data.main.humidity}%`;
+    
+                message.channel.send(weatherInfo);
+    
+            } catch (err) {
+                console.log(err);
+                message.reply('Something went wrong!');
+            }
+        }
+
+
 
     }
     if (message.content.startsWith("Create")) {
